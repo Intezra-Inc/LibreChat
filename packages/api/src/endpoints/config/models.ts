@@ -10,7 +10,7 @@ import type { AppConfig } from '@librechat/data-schemas';
 import type { ServerRequest, GetUserKeyValuesFunction, UserKeyValues } from '~/types';
 import type { FetchModelsParams } from '~/endpoints/models';
 import { fetchModels as defaultFetchModels } from '~/endpoints/models';
-import { isUserProvided } from '~/utils';
+import { isUserProvided, isOpenIdPassthrough } from '~/utils';
 
 interface ResolvedEndpoint {
   name: string;
@@ -19,6 +19,7 @@ interface ResolvedEndpoint {
   baseURL: string;
   apiKeyIsUserProvided: boolean;
   baseURLIsUserProvided: boolean;
+  apiKeyIsOpenIdPassthrough: boolean;
 }
 
 export interface LoadConfigModelsDeps {
@@ -92,6 +93,7 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
         baseURL: resolvedBaseURL,
         apiKeyIsUserProvided: isUserProvided(resolvedApiKey),
         baseURLIsUserProvided: isUserProvided(resolvedBaseURL),
+        apiKeyIsOpenIdPassthrough: isOpenIdPassthrough(resolvedApiKey),
       };
       resolved.push(entry);
 
@@ -140,9 +142,39 @@ export function createLoadConfigModels(deps: LoadConfigModelsDeps) {
       baseURL: BASE_URL,
       apiKeyIsUserProvided,
       baseURLIsUserProvided,
+      apiKeyIsOpenIdPassthrough,
     } of resolved) {
       const { models, headers: endpointHeaders } = endpoint;
       const uniqueKey = `${BASE_URL}__${API_KEY}`;
+
+      if (models?.fetch && apiKeyIsOpenIdPassthrough) {
+        const accessToken = req.user?.federatedTokens?.access_token;
+        if (!accessToken) {
+          if (Array.isArray(models?.default)) {
+            modelsConfig[name] = models.default.map((model) =>
+              typeof model === 'string' ? model : model.name,
+            );
+          }
+          continue;
+        }
+        const userFetchKey = `openid:${req.user?.id}:${name}`;
+        fetchPromisesMap[userFetchKey] =
+          fetchPromisesMap[userFetchKey] ||
+          fetchModels({
+            name,
+            apiKey: accessToken,
+            baseURL: BASE_URL,
+            user: req.user?.id,
+            userObject: req.user,
+            headers: endpointHeaders,
+            direct: endpoint.directEndpoint,
+            userIdQuery: models.userIdQuery,
+            skipCache: true,
+          });
+        uniqueKeyToEndpointsMap[userFetchKey] = uniqueKeyToEndpointsMap[userFetchKey] || [];
+        uniqueKeyToEndpointsMap[userFetchKey].push(name);
+        continue;
+      }
 
       if (models?.fetch && !apiKeyIsUserProvided && !baseURLIsUserProvided) {
         fetchPromisesMap[uniqueKey] =
