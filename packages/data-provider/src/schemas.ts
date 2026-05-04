@@ -11,6 +11,7 @@ export enum AuthType {
   OVERRIDE_AUTH = 'override_auth',
   USER_PROVIDED = 'user_provided',
   SYSTEM_DEFINED = 'system_defined',
+  OPENID_PASSTHROUGH = 'openid_passthrough',
 }
 
 export const authTypeSchema = z.nativeEnum(AuthType);
