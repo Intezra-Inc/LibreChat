@@ -27,7 +27,7 @@ function Footer({ className }: { className?: string }) {
   const mainContentParts = (
     typeof config?.customFooter === 'string'
       ? config.customFooter
-      : '[OspraiChat ' + Constants.VERSION + '](https://osprai.dev)'
+      : '[OspraiChat ' + Constants.VERSION + '](https://osprai.io)'
   ).split('|');
 
   useEffect(() => {
