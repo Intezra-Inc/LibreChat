@@ -8,7 +8,7 @@ import type { TEndpoint } from 'librechat-data-provider';
 import type { AppConfig } from '@librechat/data-schemas';
 import type { BaseInitializeParams, InitializeResultBase, EndpointTokenConfig } from '~/types';
 import { getOpenAIConfig } from '~/endpoints/openai/config';
-import { isUserProvided, checkUserKeyExpiry } from '~/utils';
+import { isUserProvided, isOpenIdPassthrough, checkUserKeyExpiry } from '~/utils';
 import { getCustomEndpointConfig } from '~/app/config';
 import { fetchModels } from '~/endpoints/models';
 import { validateEndpointURL } from '~/auth';
@@ -87,6 +87,7 @@ export async function initializeCustom({
 
   const userProvidesKey = isUserProvided(CUSTOM_API_KEY);
   const userProvidesURL = isUserProvided(CUSTOM_BASE_URL);
+  const passthroughOpenId = isOpenIdPassthrough(CUSTOM_API_KEY);
 
   // Expiry is only checked when present: the Agents API sends an OpenAI-compatible
   // request body that does not include `key` (the expiry timestamp), so expiresAt
@@ -100,7 +101,21 @@ export async function initializeCustom({
     userValues = await db.getUserKeyValues({ userId: req.user?.id ?? '', name: endpoint });
   }
 
-  const apiKey = userProvidesKey ? userValues?.apiKey : CUSTOM_API_KEY;
+  const passthroughToken = passthroughOpenId
+    ? req.user?.federatedTokens?.access_token
+    : undefined;
+
+  if (passthroughOpenId && !passthroughToken) {
+    throw new Error(
+      `${endpoint}: 'openid_passthrough' requires an active OpenID session with OPENID_REUSE_TOKENS=true.`,
+    );
+  }
+
+  const apiKey = passthroughOpenId
+    ? passthroughToken
+    : userProvidesKey
+      ? userValues?.apiKey
+      : CUSTOM_API_KEY;
   const baseURL = userProvidesURL ? userValues?.baseURL : CUSTOM_BASE_URL;
 
   if (userProvidesKey && !apiKey) {

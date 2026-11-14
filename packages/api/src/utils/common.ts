@@ -35,6 +35,9 @@ export function isEnabled(value?: string | boolean | null | undefined): boolean 
  */
 export const isUserProvided = (value?: string): boolean => value === AuthType.USER_PROVIDED;
 
+export const isOpenIdPassthrough = (value?: string): boolean =>
+  value === AuthType.OPENID_PASSTHROUGH;
+
 /**
  * @param values
  */

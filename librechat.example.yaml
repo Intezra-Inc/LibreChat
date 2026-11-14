@@ -472,6 +472,22 @@ endpoints:
       modelDisplayLabel: 'Helicone'
       iconURL: https://marketing-assets-helicone.s3.us-west-2.amazonaws.com/helicone.png
 
+    # OIDC passthrough Example
+    # When apiKey is set to the sentinel "openid_passthrough", LibreChat
+    # forwards the logged-in user's OIDC access_token (from the active
+    # OPENID_REUSE_TOKENS=true session) as the upstream Bearer. Use this
+    # for OpenAI-compatible gateways that authenticate against the same
+    # OpenID Connect provider users sign in to LibreChat through.
+    # - name: 'OSPRAI'
+    #   apiKey: 'openid_passthrough'
+    #   baseURL: 'http://django:8000/api/llm/usellm/v1'
+    #   models:
+    #     default: ['omni']
+    #     fetch: true
+    #   titleConvo: true
+    #   titleModel: 'current_model'
+    #   modelDisplayLabel: 'OSPRAI'
+
     # Portkey AI Example
     - name: 'Portkey'
       apiKey: 'dummy'
